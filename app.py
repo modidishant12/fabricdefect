@@ -19,7 +19,7 @@ np.set_printoptions(suppress=True)
 # 🚀 Load model and labels with patch
 @st.cache_resource
 def load_model_and_labels():
-    model = load_model("keras_Model.h5", custom_objects={"DepthwiseConv2D": PatchedDepthwiseConv2D}, compile=False)
+    model = load_model("keras_model.h5", custom_objects={"DepthwiseConv2D": PatchedDepthwiseConv2D}, compile=False)
     labels = [label.strip() for label in open("labels.txt", "r").readlines()]
     return model, labels
 
