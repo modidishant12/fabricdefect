@@ -5,8 +5,10 @@ st.set_page_config(page_title="Fabriconator", layout="centered")
 
 from PIL import Image, ImageOps
 import numpy as np
-from keras.models import load_model
-from keras.layers import DepthwiseConv2D
+from tensorflow.keras.models import load_model
+from tensorflow.keras.layers import DepthwiseConv2D
+
+import os
 
 # 📛 Patch for DepthwiseConv2D to fix 'groups=1' error from Teachable Machine
 class PatchedDepthwiseConv2D(DepthwiseConv2D):
@@ -19,8 +21,19 @@ np.set_printoptions(suppress=True)
 # 🚀 Load model and labels with patch
 @st.cache_resource
 def load_model_and_labels():
-    model = load_model("keras_Model.h5", custom_objects={"DepthwiseConv2D": PatchedDepthwiseConv2D}, compile=False)
-    labels = [label.strip() for label in open("labels.txt", "r").readlines()]
+    model_path = os.path.join("models", "keras_Model.h5")
+    label_path = os.path.join("models", "labels.txt")
+
+    if not os.path.exists(model_path):
+        st.error(f"❌ Model file not found at {model_path}")
+        st.stop()
+
+    if not os.path.exists(label_path):
+        st.error(f"❌ Label file not found at {label_path}")
+        st.stop()
+
+    model = load_model(model_path, custom_objects={"DepthwiseConv2D": PatchedDepthwiseConv2D}, compile=False)
+    labels = [label.strip() for label in open(label_path, "r").readlines()]
     return model, labels
 
 model, class_names = load_model_and_labels()
