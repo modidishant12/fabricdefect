@@ -16,7 +16,7 @@ class PatchedDepthwiseConv2D(DepthwiseConv2D):
 # 🔁 Load model from repo path
 @st.cache_resource
 def load_trained_model():
-    model_path = os.path.join(os.path.dirname(__file__), "keras_Model.h5")
+    model_path = os.path.join(os.path.dirname(__file__), "keras_model.h5")
     model = load_model(model_path, compile=False, custom_objects={"DepthwiseConv2D": PatchedDepthwiseConv2D})
     return model
 
