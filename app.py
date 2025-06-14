@@ -23,7 +23,7 @@ def load_trained_model():
 model = load_trained_model()
 
 # 🔤 Hardcoded class names (based on training)
-CLASS_NAMES = ["Good", "Hole", "Line", "Spot"]  # Change order as per your model output
+CLASS_NAMES = ["Hole", "spot", "Line", "Good"]  # Change order as per your model output
 
 # 🔍 Prediction function
 def predict(image: Image.Image):
