@@ -1,63 +1,51 @@
 import streamlit as st
-
-# ✅ MUST BE FIRST STREAMLIT COMMAND
-st.set_page_config(page_title="Fabriconator", layout="centered")
-
-from PIL import Image, ImageOps
 import numpy as np
+from PIL import Image, ImageOps
 from keras.models import load_model
 from keras.layers import DepthwiseConv2D
+import os
 
-# 📛 Patch for DepthwiseConv2D to fix 'groups=1' error from Teachable Machine
+# ✅ Streamlit setup
+st.set_page_config(page_title="Fabriconator", layout="centered")
+
+# 🔧 Patch DepthwiseConv2D (for Teachable Machine models)
 class PatchedDepthwiseConv2D(DepthwiseConv2D):
     def __init__(self, *args, groups=1, **kwargs):
         super().__init__(*args, **kwargs)
 
-# ⏫ Disable scientific notation
-np.set_printoptions(suppress=True)
-
-# 🚀 Load model and labels with patch
+# 🔁 Load model from repo path
 @st.cache_resource
-def load_model_and_labels():
-    model = load_model("keras_model.h5", custom_objects={"DepthwiseConv2D": PatchedDepthwiseConv2D}, compile=False)
-    labels = [label.strip() for label in open("labels.txt", "r").readlines()]
-    return model, labels
+def load_trained_model():
+    model_path = os.path.join(os.path.dirname(__file__), "keras_Model.h5")
+    model = load_model(model_path, compile=False, custom_objects={"DepthwiseConv2D": PatchedDepthwiseConv2D})
+    return model
 
-model, class_names = load_model_and_labels()
+model = load_trained_model()
 
-# 🧠 Prediction function
-def predict_teachable_model(image):
-    # Teachable Machine expects 224x224 images
-    size = (224, 224)
-    image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
+# 🔤 Hardcoded class names (based on training)
+CLASS_NAMES = ["Good", "Hole", "Line", "Spot"]  # Change order as per your model output
 
-    # Normalize image: (pixel / 127.5) - 1
-    image_array = np.asarray(image).astype(np.float32)
-    normalized_image_array = (image_array / 127.5) - 1
+# 🔍 Prediction function
+def predict(image: Image.Image):
+    image = ImageOps.fit(image, (224, 224), Image.Resampling.LANCZOS)
+    img_array = np.asarray(image).astype(np.float32)
+    normalized = (img_array / 127.5) - 1
+    data = np.expand_dims(normalized, axis=0)
 
-    # Reshape for model input
-    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-    data[0] = normalized_image_array
-
-    # Predict
     prediction = model.predict(data)
-    index = np.argmax(prediction)
-    class_name = class_names[index]
+    index = int(np.argmax(prediction))
     confidence = float(prediction[0][index]) * 100
+    label = CLASS_NAMES[index]
 
-    return class_name, confidence
+    return label, confidence
 
 # ========== 🌐 Streamlit UI ==========
-
 st.sidebar.title("🧵 Fabriconator")
 st.sidebar.image("logo.jpg", caption="Fabriconator", use_container_width=True)
-
 st.sidebar.markdown("Upload a fabric image to detect defects.")
-
 uploaded_file = st.sidebar.file_uploader("📤 Upload an image", type=["jpg", "jpeg", "png"])
 
 st.title("🧵 Fabriconator - Fabric Defect Detector")
-
 st.markdown("""
 Fabriconator is an AI-powered tool trained to detect defects in fabric images.  
 It classifies fabric into one of the following:
@@ -69,13 +57,14 @@ It classifies fabric into one of the following:
 Upload a fabric image from the sidebar to get started.
 """)
 
+# 🖼️ Show image and prediction
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="🖼️ Uploaded Fabric Image", use_container_width=True)
+    st.image(image, caption="🖼️ Uploaded Fabric Image", use_column_width=True)
 
-    with st.spinner("🔍 Analyzing..."):
-        label, confidence = predict_teachable_model(image)
+    with st.spinner("🔍 Analyzing fabric..."):
+        label, confidence = predict(image)
 
-    st.success("✅ Detection Complete!")
-    st.markdown(f"### 🎯 Result: **{label.upper()}**")
-    st.markdown(f"**📊 Confidence:** {confidence:.2f}%")
+    st.success("✅ Analysis Complete!")
+    st.markdown(f"### 🎯 Predicted Class: **{label.upper()}**")
+    st.markdown(f"**📊 Confidence Score:** `{confidence:.2f}%`")
