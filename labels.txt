@@ -1,4 +1,0 @@
-hole
-spot
-line
-good
